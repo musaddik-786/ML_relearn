@@ -1,1 +1,59 @@
-d
+
+class LicensingSanctionMCPRequest(BaseModel):
+    """Rpresents the functionality of Writing the Eligibility Data to Database based of PostgreSQL"""
+    jsonrpc: str
+    id: int
+    result: dict
+
+
+@router.post(
+    "/Licensing_&_Sanction_Checker_MCP",
+    operation_id="Licensing_&_Sanction_Checker_MCP"
+)
+async def licensing_sanction_checker_mcp(request: LicensingSanctionMCPRequest):
+
+    """
+    Write Licensing_&_Sanction_Checker_MCP data to PostgreSQL agent_eligibility table
+   
+    This endpoint takes input from Licensing_&_Sanction_Checker_MCP, based on received is_Sanctioned field it reads the ref_eligibility_check table based on the Value of is_Sanctioned it picks up the 
+    correspinsding data from the ref_eligibility_check table and writes it into the 
+    agent_eligibility PostgreSQL table. Each call inserts a new record.
+   
+    For the following fields:
+        eligibility_check_date_time
+        reason_summary
+        line_of_business
+        location_risk_zone
+        business_type
+        licensing_and_sanction_check
+        source_of_check
+        eligibility_status
+        approval_flag.
+    
+    It also reads the agent_submission_intake table for getting the latest reference_numnber 
+        reference_number.
+    
+    so that it can insert that reference_number for that new record that got written in agent_eligibility PostgreSQL table
+    
+
+
+    Args:
+        jsonrpc (str)
+        id (int): just an Identifier
+        result (dict): This is the response that Licensing_&_Sanction_Checker_MCP gave which has is_Santioned as a field
+    Returns:
+        JSONResponse: Returns JSON-RPC response containing
+        
+    
+    """
+
+    decision = process_sanction_and_eligibility(request.result)
+
+    return JSONResponse(
+        content={
+            "jsonrpc": request.jsonrpc,
+            "id": request.id,
+            "result": decision
+        },
+        status_code=200
+    )
