@@ -57,3 +57,30 @@ async def licensing_sanction_checker_mcp(request: LicensingSanctionMCPRequest):
         },
         status_code=200
     )
+
+
+
+
+
+
+This is our current response 
+
+HTTP Status: 200
+{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": {
+        "status": true,
+        "reference_number": "19B92D69F14DBB4A",
+        "eligibility_status": "Eligible",
+        "reason_summary": "Within sum insured limits and approved risk zone",
+        "line_of_business": "Commercial Property",
+        "location_risk_zone": "Medium",
+        "business_type": "New Business",
+        "licensing_and_sanction_check": "Cleared",
+        "source_of_check": "OFAC SDN, EU Sanctions, UN Sanctions",
+        "approval_flag": false,
+        "eligibility_check_date_time": "2026-01-12 15:41:44"
+    }
+}
+(venv) Jarvis@JarvisPhase2:~/Musaddique/Eligibility_DataFiller$ 
