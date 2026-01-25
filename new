@@ -1,285 +1,35 @@
-Great question — this is exactly the right time to polish docstrings, because your logic is now correct and stable.
+Original Data (from df.head() before encoding):
+	company	job	degree	salary_more_then_100k
+0	google	sales executive	bachelors	0
+1	google	sales executive	masters	0
+2	google	business manager	bachelors	1
+3	google	business manager	masters	1
+4	google	computer programmer	bachelors	0
 
-I’ll do three things:
-	1.	Review what you wrote and point out issues (precisely)
-	2.	Give corrected, professional docstrings
-	3.	Give a proper JSON-RPC–specific docstring style
 
-No code logic changes, only documentation quality.
 
-⸻
+df['degree_number'] = df.degree.map({'bachelors':1, 'masters': 2})
+df.head(3)
 
-1️⃣ Review of your current docstrings (what’s wrong / improvable)
+df.drop('degree', axis="columns", inplace=True)
+df.head(3)
 
-Issues in LicensingSanctionMCPRequest docstring
 
-"""Rpresents the functionality of Writing the Eligibility Data to Database based of PostgreSQL"""
+       company                  job  salary_more_then_100k  degree_number
+0       google      sales executive                      0              1
+1       google      sales executive                      0              2
+2       google     business manager                      1              1
+3       google     business manager                      1              2
+4       google  computer programmer                      0              1
 
-❌ Problems:
-	•	Typo: Rpresents → Represents
-	•	This class does not write to DB
-	•	It only represents the JSON-RPC request payload
-	•	“based of PostgreSQL” is grammatically incorrect
 
-👉 This docstring describes behavior, but the class only describes data structure.
+df_encoded = pd.get_dummies(df, columns=['company', 'job'], drop_first=True)
+df_encoded.head()
 
-⸻
 
-Issues in endpoint docstring
-
-Your endpoint docstring is conceptually correct, but:
-
-❌ Too long sentences
-❌ Grammar and spelling issues (correspinsding, numnber, Santioned)
-❌ JSON-RPC is not clearly explained
-❌ Args section does not match FastAPI signature
-❌ Returns section is incomplete
-
-⸻
-
-2️⃣ Corrected & Professional Docstrings (Recommended)
-
-Below is a clean, production-quality version, aligned with FastAPI + JSON-RPC conventions.
-
-⸻
-
-✅ LicensingSanctionMCPRequest (Corrected)
-
-class LicensingSanctionMCPRequest(BaseModel):
-    """
-    JSON-RPC request schema for the Licensing & Sanction Checker MCP.
-
-    This model represents the JSON-RPC 2.0 request envelope received by
-    the Licensing_&_Sanction_Checker_MCP endpoint.
-
-    Attributes:
-        jsonrpc (str): JSON-RPC protocol version (expected value: "2.0").
-        id (int): Client-provided request identifier used for correlation.
-        result (dict): Payload produced by the upstream Sanction Checker MCP.
-            This payload must contain the `is_Sanctioned` field used to
-            determine eligibility.
-    """
-    jsonrpc: str
-    id: int
-    result: dict
-
-✅ Now:
-	•	Correct responsibility
-	•	Clear JSON-RPC semantics
-	•	No mention of database logic (correct separation)
-
-⸻
-
-✅ Endpoint Docstring (Corrected & Clean)
-
-@router.post(
-    "/Licensing_&_Sanction_Checker_MCP",
-    operation_id="Licensing_&_Sanction_Checker_MCP"
-)
-async def licensing_sanction_checker_mcp(request: LicensingSanctionMCPRequest):
-    """
-    Process sanction results and persist eligibility data using PostgreSQL.
-
-    This endpoint receives a JSON-RPC request from the
-    Licensing & Sanction Checker MCP containing the `is_Sanctioned` flag.
-    Based on this value, it performs the following steps:
-
-    1. Determines eligibility status:
-       - `Eligible` if `is_Sanctioned` is False
-       - `Not Eligible` if `is_Sanctioned` is True
-
-    2. Reads the corresponding eligibility rule from the
-       `ref_eligibility_check` reference table.
-
-    3. Retrieves the most recent `reference_number` from the
-       `agent_submission_intake` table.
-
-    4. Writes a new eligibility record into the
-       `agent_eligibility` PostgreSQL table.
-
-    5. Returns the persisted eligibility data as a JSON-RPC response.
-
-    The following fields are written to the `agent_eligibility` table:
-        - reference_number
-        - eligibility_status
-        - reason_summary
-        - line_of_business
-        - location_risk_zone
-        - business_type
-        - licensing_and_sanction_check
-        - source_of_check
-        - approval_flag
-        - eligibility_check_date_time
-
-    Args:
-        request (LicensingSanctionMCPRequest):
-            JSON-RPC request envelope containing the sanction result payload.
-
-    Returns:
-        JSONResponse:
-            A JSON-RPC 2.0–compliant response containing the evaluated
-            eligibility decision and related metadata.
-    """
-
-    decision = process_sanction_and_eligibility(request.result)
-
-    return JSONResponse(
-        content={
-            "jsonrpc": request.jsonrpc,
-            "id": request.id,
-            "result": decision
-        },
-        status_code=200
-    )
-
-
-⸻
-
-3️⃣ JSON-RPC–Specific Docstring Guidance (Important)
-
-Since you are using JSON-RPC, the following conventions are best practice:
-
-✅ Always document:
-	•	jsonrpc version
-	•	id correlation behavior
-	•	What goes inside result
-	•	That errors are returned inside result, not as HTTP errors (if that’s your design)
-
-Example JSON-RPC docstring pattern
-
-This endpoint follows the JSON-RPC 2.0 specification.
-All successful responses return HTTP 200 and include
-application-level success or failure information within
-the `result` object.
-
-You’ve already implemented this correctly — now it’s documented properly.
-
-⸻
-
-4️⃣ Validation against your actual response (✔ matches)
-
-Your current response:
-
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "result": {
-    "status": true,
-    "reference_number": "19B92D69F14DBB4A",
-    "eligibility_status": "Eligible",
-    "reason_summary": "Within sum insured limits and approved risk zone",
-    "line_of_business": "Commercial Property",
-    "location_risk_zone": "Medium",
-    "business_type": "New Business",
-    "licensing_and_sanction_check": "Cleared",
-    "source_of_check": "OFAC SDN, EU Sanctions, UN Sanctions",
-    "approval_flag": false,
-    "eligibility_check_date_time": "2026-01-12 15:41:44"
-  }
-}
-
-✅ Fully consistent with the corrected docstrings
-✅ Field names documented
-✅ JSON-RPC envelope correctly explained
-
-⸻
-
-5️⃣ Final Verdict
-	•	✔ Your intent was correct
-	•	✔ Your logic is correct
-	•	🔧 Your docstrings needed refinement, not redesign
-	•	✅ Now they are clear, accurate, professional, and audit-ready
-
-If you want next, I can:
-	•	Standardize docstrings across all MCPs
-	•	Add OpenAPI descriptions for MCP clients
-	•	Or write a one-page MCP contract spec
-
-
-
-
-class LicensingSanctionMCPRequest(BaseModel):
-    """Rpresents the functionality of Writing the Eligibility Data to Database based of PostgreSQL"""
-    jsonrpc: str
-    id: int
-    result: dict
-
-
-@router.post(
-    "/Licensing_&_Sanction_Checker_MCP",
-    operation_id="Licensing_&_Sanction_Checker_MCP"
-)
-async def licensing_sanction_checker_mcp(request: LicensingSanctionMCPRequest):
-
-    """
-    Write Licensing_&_Sanction_Checker_MCP data to PostgreSQL agent_eligibility table
-   
-    This endpoint takes input from Licensing_&_Sanction_Checker_MCP, based on received is_Sanctioned field it reads the ref_eligibility_check table based on the Value of is_Sanctioned it picks up the 
-    correspinsding data from the ref_eligibility_check table and writes it into the 
-    agent_eligibility PostgreSQL table. Each call inserts a new record.
-   
-    For the following fields:
-        eligibility_check_date_time
-        reason_summary
-        line_of_business
-        location_risk_zone
-        business_type
-        licensing_and_sanction_check
-        source_of_check
-        eligibility_status
-        approval_flag.
-    
-    It also reads the agent_submission_intake table for getting the latest reference_numnber 
-        reference_number.
-    
-    so that it can insert that reference_number for that new record that got written in agent_eligibility PostgreSQL table
-    
-
-
-    Args:
-        jsonrpc (str)
-        id (int): just an Identifier
-        result (dict): This is the response that Licensing_&_Sanction_Checker_MCP gave which has is_Santioned as a field
-    Returns:
-        JSONResponse: Returns JSON-RPC response containing
-        
-    
-    """
-
-    decision = process_sanction_and_eligibility(request.result)
-
-    return JSONResponse(
-        content={
-            "jsonrpc": request.jsonrpc,
-            "id": request.id,
-            "result": decision
-        },
-        status_code=200
-    )
-
-
-
-
-
-
-This is our current response 
-
-HTTP Status: 200
-{
-    "jsonrpc": "2.0",
-    "id": 1,
-    "result": {
-        "status": true,
-        "reference_number": "19B92D69F14DBB4A",
-        "eligibility_status": "Eligible",
-        "reason_summary": "Within sum insured limits and approved risk zone",
-        "line_of_business": "Commercial Property",
-        "location_risk_zone": "Medium",
-        "business_type": "New Business",
-        "licensing_and_sanction_check": "Cleared",
-        "source_of_check": "OFAC SDN, EU Sanctions, UN Sanctions",
-        "approval_flag": false,
-        "eligibility_check_date_time": "2026-01-12 15:41:44"
-    }
-}
-(venv) Jarvis@JarvisPhase2:~/Musaddique/Eligibility_DataFiller$ 
+  salary_more_then_100k  degree_number  company_facebook  company_google  job_computer programmer  job_sales executive
+0                      0              1             False            True                    False                 True
+1                      0              2             False            True                    False                 True
+2                      1              1             False            True                    False                False
+3                      1              2             False            True                    False                False
+4                      0              1             False            True 
